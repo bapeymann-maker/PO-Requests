@@ -8,7 +8,7 @@
 <title>PO Request</title>
 <link rel="manifest" href="manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
   :root {
     --bg: #0F1114;
@@ -1227,14 +1227,20 @@
 const SUPABASE_URL = 'YOUR_SUPABASE_URL';
 const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 
-let supabase, currentUser, currentProfile, isSignUp = false;
+let sb, currentUser, currentProfile, isSignUp = false;
 
 function initSupabase() {
   if (SUPABASE_URL === 'YOUR_SUPABASE_URL') {
     showToast('Configure Supabase credentials in index.html', 'error');
     return false;
   }
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  if (typeof window.supabase === 'undefined') {
+    showToast('Supabase library failed to load. Check your connection.', 'error');
+    return false;
+  }
+  if (!sb) {
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
   return true;
 }
 
@@ -1275,12 +1281,12 @@ async function handleAuth() {
         btn.textContent = 'Create Account';
         return;
       }
-      result = await supabase.auth.signUp({
+      result = await sb.auth.signUp({
         email, password,
         options: { data: { full_name: name } }
       });
     } else {
-      result = await supabase.auth.signInWithPassword({ email, password });
+      result = await sb.auth.signInWithPassword({ email, password });
     }
 
     if (result.error) throw result.error;
@@ -1309,7 +1315,7 @@ async function handleAuth() {
 
 async function loadProfile() {
   // Upsert profile on login
-  const { data } = await supabase
+  const { data } = await sb
     .from('profiles')
     .select('*')
     .eq('id', currentUser.id)
@@ -1319,7 +1325,7 @@ async function loadProfile() {
     currentProfile = data;
   } else {
     const name = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
-    const { data: newProfile } = await supabase
+    const { data: newProfile } = await sb
       .from('profiles')
       .upsert({ id: currentUser.id, full_name: name, role: 'employee', is_approved: false })
       .select()
@@ -1357,7 +1363,7 @@ function enterApp() {
 }
 
 async function logout() {
-  await supabase.auth.signOut();
+  await sb.auth.signOut();
   document.getElementById('app').classList.remove('active');
   document.getElementById('pendingScreen').classList.remove('active');
   document.getElementById('loginScreen').classList.remove('hidden');
@@ -1368,7 +1374,7 @@ async function logout() {
 // ─── CHECK SESSION ON LOAD ────────────────────────────
 async function checkSession() {
   if (!initSupabase()) return;
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await sb.auth.getSession();
   if (session) {
     currentUser = session.user;
     await loadProfile();
@@ -1473,7 +1479,7 @@ async function submitPO() {
   const total = items.reduce((s, i) => s + i.line_total, 0);
 
   try {
-    const { data: po, error } = await supabase
+    const { data: po, error } = await sb
       .from('purchase_orders')
       .insert({
         requester_id: currentUser.id,
@@ -1510,7 +1516,7 @@ async function loadMyPOs() {
   const container = document.getElementById('myPOList');
   container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
 
-  let query = supabase
+  let query = sb
     .from('purchase_orders')
     .select('*')
     .eq('requester_id', currentUser.id)
@@ -1547,7 +1553,7 @@ async function loadApprovals() {
   const container = document.getElementById('approvalList');
   container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
 
-  let query = supabase
+  let query = sb
     .from('purchase_orders')
     .select('*')
     .order('created_at', { ascending: false });
@@ -1727,7 +1733,7 @@ async function reviewPO(poId, status) {
     // Auto-generate PO# on approval
     if (status === 'approved') {
       // Get next sequential number
-      const { data: maxPO } = await supabase
+      const { data: maxPO } = await sb
         .from('purchase_orders')
         .select('po_sequence')
         .not('po_sequence', 'is', null)
@@ -1744,7 +1750,7 @@ async function reviewPO(poId, status) {
       const datePart = yy + dd;
 
       // Get requester initials from the PO's requester_name
-      const { data: poData } = await supabase
+      const { data: poData } = await sb
         .from('purchase_orders')
         .select('requester_name')
         .eq('id', poId)
@@ -1761,7 +1767,7 @@ async function reviewPO(poId, status) {
       updateData.po_number = poNumber;
     }
 
-    const { error } = await supabase
+    const { error } = await sb
       .from('purchase_orders')
       .update(updateData)
       .eq('id', poId);
@@ -1786,7 +1792,7 @@ async function loadUsers() {
   if (!container) return;
   container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
 
-  let query = supabase
+  let query = sb
     .from('profiles')
     .select('*')
     .order('created_at', { ascending: false });
@@ -1802,7 +1808,7 @@ async function loadUsers() {
   }
 
   // Update badge with pending count
-  const { data: pendingData } = await supabase
+  const { data: pendingData } = await sb
     .from('profiles')
     .select('id')
     .eq('is_approved', false);
@@ -1875,7 +1881,7 @@ function userCardHTML(user) {
 
 async function approveUser(userId) {
   try {
-    const { error } = await supabase
+    const { error } = await sb
       .from('profiles')
       .update({ is_approved: true })
       .eq('id', userId);
@@ -1890,7 +1896,7 @@ async function approveUser(userId) {
 
 async function revokeUser(userId) {
   try {
-    const { error } = await supabase
+    const { error } = await sb
       .from('profiles')
       .update({ is_approved: false })
       .eq('id', userId);
@@ -1911,7 +1917,7 @@ async function removeUser(userId, userName) {
   // Override the confirm button to call removeUserConfirm
   document.getElementById('confirmDeleteBtn').onclick = async function() {
     try {
-      const { error } = await supabase
+      const { error } = await sb
         .from('profiles')
         .delete()
         .eq('id', userId);
@@ -1936,7 +1942,7 @@ let pendingDeleteId = null;
 // ─── EDIT MODE ────────────────────────────────────────
 async function openEditMode(poId) {
   // Fetch fresh data
-  const { data: po, error } = await supabase
+  const { data: po, error } = await sb
     .from('purchase_orders')
     .select('*')
     .eq('id', poId)
@@ -2056,7 +2062,7 @@ async function saveEdit(poId) {
   const total = items.reduce((s, i) => s + i.line_total, 0);
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await sb
       .from('purchase_orders')
       .update({
         vendor_name: vendor,
@@ -2099,7 +2105,7 @@ async function confirmDeletePO() {
   const poId = pendingDeleteId;
 
   try {
-    const { error } = await supabase
+    const { error } = await sb
       .from('purchase_orders')
       .delete()
       .eq('id', poId);
@@ -2131,7 +2137,13 @@ function escapeHtml(text) {
 }
 
 // Init
-checkSession();
+document.addEventListener('DOMContentLoaded', function() {
+  try {
+    checkSession();
+  } catch(e) {
+    console.error('Startup error:', e);
+  }
+});
 </script>
 </body>
 </html>
