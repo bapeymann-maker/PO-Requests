@@ -951,6 +951,164 @@
     overflow-x: auto;
   }
 
+  /* ── RECEIPT UPLOAD ── */
+  .receipt-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .receipt-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .receipt-thumb {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: var(--surface-2);
+    cursor: pointer;
+    border: 1px solid var(--border);
+  }
+
+  .receipt-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .receipt-thumb .receipt-delete {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 22px;
+    height: 22px;
+    background: rgba(0,0,0,0.7);
+    border: none;
+    border-radius: 50%;
+    color: var(--red);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .receipt-thumb:hover .receipt-delete,
+  .receipt-thumb:active .receipt-delete {
+    opacity: 1;
+  }
+
+  .receipt-upload-area {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .receipt-upload-btn {
+    flex: 1;
+    padding: 12px;
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--accent);
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .receipt-upload-btn:active {
+    background: var(--accent-dim);
+  }
+
+  .receipt-upload-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .upload-progress {
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    color: var(--text-dim);
+    display: none;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .upload-progress.active {
+    display: flex;
+  }
+
+  .upload-progress .spinner {
+    width: 16px;
+    height: 16px;
+    border-width: 2px;
+  }
+
+  /* Receipt full view */
+  .receipt-viewer {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.9);
+    z-index: 400;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .receipt-viewer.active {
+    display: flex;
+  }
+
+  .receipt-viewer img {
+    max-width: 100%;
+    max-height: 90dvh;
+    object-fit: contain;
+    border-radius: var(--radius);
+  }
+
+  .receipt-viewer-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 40px;
+    height: 40px;
+    background: rgba(255,255,255,0.15);
+    border: none;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 22px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .receipt-count {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-left: 6px;
+  }
+
   .empty-state {
     text-align: center;
     padding: 60px 24px;
@@ -1221,11 +1379,21 @@
   </div>
 </div>
 
+<!-- Receipt Full Viewer -->
+<div id="receiptViewer" class="receipt-viewer" onclick="closeReceiptViewer()">
+  <button class="receipt-viewer-close" onclick="closeReceiptViewer()">×</button>
+  <img id="receiptViewerImg" src="" alt="Receipt">
+</div>
+
+<!-- Hidden file inputs -->
+<input type="file" id="receiptFileInput" accept="image/*" style="display:none" onchange="handleReceiptFile(this)">
+<input type="file" id="receiptCameraInput" accept="image/*" capture="environment" style="display:none" onchange="handleReceiptFile(this)">
+
 <script>
 // ─── CONFIG ───────────────────────────────────────────
 // Replace these with your Supabase project values
-const SUPABASE_URL = 'https://ndzlvuvceraprpjhseax.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kemx2dXZjZXJhcHJwamhzZWF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzMTMwMzQsImV4cCI6MjA4NTg4OTAzNH0.fQk-lXcBFxSRY1wTFwr1v7katWT-dscvcWMLXv7lteI';
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 
 let sb, currentUser, currentProfile, isSignUp = false;
 
@@ -1608,7 +1776,7 @@ function poCardHTML(po, showRequester = false) {
       <div class="po-vendor">${escapeHtml(po.vendor_name)}</div>
       ${po.po_for ? `<div style="font-size:12px;color:var(--text-dim);margin-bottom:4px">↳ ${escapeHtml(po.po_for)}</div>` : ''}
       <div class="po-meta">
-        <span>${itemCount} item${itemCount !== 1 ? 's' : ''} · ${date}</span>
+        <span>${itemCount} item${itemCount !== 1 ? 's' : ''} · ${date}${(po.receipts?.length || 0) > 0 ? ` · 📎${po.receipts.length}` : ''}</span>
         <span class="po-total">$${po.estimated_total.toFixed(2)}</span>
       </div>
     </div>
@@ -1697,6 +1865,37 @@ function openDetail(po) {
       ${itemsHTML}
     </div>
 
+    ${po.status === 'approved' ? `
+      <div class="receipt-section">
+        <div class="section-title" style="border:none;padding:0;margin-bottom:4px">
+          Receipts
+          <span class="receipt-count">${(po.receipts || []).length} uploaded</span>
+        </div>
+        <div class="receipt-grid" id="receiptGrid">
+          ${(po.receipts || []).map((url, i) => `
+            <div class="receipt-thumb" onclick="viewReceipt('${url}', event)">
+              <img src="${url}" alt="Receipt ${i + 1}" loading="lazy">
+              <button class="receipt-delete" onclick="deleteReceipt(${po.id}, ${i}, event)" title="Remove">×</button>
+            </div>
+          `).join('')}
+        </div>
+        <div class="receipt-upload-area">
+          <button class="receipt-upload-btn" onclick="triggerReceiptCamera(${po.id})">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            Take Photo
+          </button>
+          <button class="receipt-upload-btn" onclick="triggerReceiptUpload(${po.id})">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Upload File
+          </button>
+        </div>
+        <div class="upload-progress" id="uploadProgress">
+          <div class="spinner"></div>
+          <span>Uploading receipt...</span>
+        </div>
+      </div>
+    ` : ''}
+
     ${isApprover && isRequested ? `
       <div class="approval-actions">
         <button class="btn btn-approve" onclick="reviewPO(${po.id}, 'approved')">✓ Approve</button>
@@ -1743,11 +1942,12 @@ async function reviewPO(poId, status) {
 
       const nextSeq = (maxPO?.po_sequence || 0) + 1;
 
-      // Get YYDD (2-digit year + 2-digit day)
+      // Get YYMMDD (2-digit year + 2-digit month + 2-digit day)
       const now = new Date();
       const yy = String(now.getFullYear()).slice(-2);
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
       const dd = String(now.getDate()).padStart(2, '0');
-      const datePart = yy + dd;
+      const datePart = yy + mm + dd;
 
       // Get requester initials from the PO's requester_name
       const { data: poData } = await sb
@@ -1782,6 +1982,167 @@ async function reviewPO(poId, status) {
   } catch (e) {
     showToast('Failed: ' + e.message, 'error');
   }
+}
+
+// ─── RECEIPT UPLOAD ────────────────────────────────────
+let receiptTargetPOId = null;
+
+function triggerReceiptCamera(poId) {
+  receiptTargetPOId = poId;
+  document.getElementById('receiptCameraInput').value = '';
+  document.getElementById('receiptCameraInput').click();
+}
+
+function triggerReceiptUpload(poId) {
+  receiptTargetPOId = poId;
+  document.getElementById('receiptFileInput').value = '';
+  document.getElementById('receiptFileInput').click();
+}
+
+async function handleReceiptFile(input) {
+  const file = input.files?.[0];
+  if (!file || !receiptTargetPOId) return;
+
+  // Validate file
+  if (!file.type.startsWith('image/')) {
+    showToast('Please select an image file', 'error');
+    return;
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    showToast('File too large (max 10MB)', 'error');
+    return;
+  }
+
+  const progress = document.getElementById('uploadProgress');
+  progress.classList.add('active');
+
+  try {
+    // Generate unique filename
+    const ext = file.name.split('.').pop() || 'jpg';
+    const fileName = `po_${receiptTargetPOId}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+    // Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await sb
+      .storage
+      .from('receipts')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (uploadError) throw uploadError;
+
+    // Get public URL
+    const { data: urlData } = sb
+      .storage
+      .from('receipts')
+      .getPublicUrl(fileName);
+
+    const publicUrl = urlData.publicUrl;
+
+    // Get current receipts array from the PO
+    const { data: po, error: fetchError } = await sb
+      .from('purchase_orders')
+      .select('receipts')
+      .eq('id', receiptTargetPOId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    const receipts = po.receipts || [];
+    receipts.push(publicUrl);
+
+    // Update PO with new receipts array
+    const { error: updateError } = await sb
+      .from('purchase_orders')
+      .update({ receipts: receipts })
+      .eq('id', receiptTargetPOId);
+
+    if (updateError) throw updateError;
+
+    showToast('Receipt uploaded!', 'success');
+
+    // Refresh the detail modal
+    const { data: updatedPO } = await sb
+      .from('purchase_orders')
+      .select('*')
+      .eq('id', receiptTargetPOId)
+      .single();
+
+    if (updatedPO) {
+      currentDetailPO = updatedPO;
+      openDetail(updatedPO);
+    }
+  } catch (e) {
+    showToast('Upload failed: ' + e.message, 'error');
+  } finally {
+    progress.classList.remove('active');
+    receiptTargetPOId = null;
+  }
+}
+
+async function deleteReceipt(poId, index, event) {
+  event.stopPropagation();
+
+  try {
+    // Get current receipts
+    const { data: po, error: fetchError } = await sb
+      .from('purchase_orders')
+      .select('receipts')
+      .eq('id', poId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    const receipts = po.receipts || [];
+    const removedUrl = receipts[index];
+
+    // Try to delete from storage
+    if (removedUrl) {
+      const path = removedUrl.split('/receipts/')[1];
+      if (path) {
+        await sb.storage.from('receipts').remove([decodeURIComponent(path)]);
+      }
+    }
+
+    // Remove from array
+    receipts.splice(index, 1);
+
+    const { error: updateError } = await sb
+      .from('purchase_orders')
+      .update({ receipts: receipts })
+      .eq('id', poId);
+
+    if (updateError) throw updateError;
+
+    showToast('Receipt removed', 'success');
+
+    // Refresh modal
+    const { data: updatedPO } = await sb
+      .from('purchase_orders')
+      .select('*')
+      .eq('id', poId)
+      .single();
+
+    if (updatedPO) {
+      currentDetailPO = updatedPO;
+      openDetail(updatedPO);
+    }
+  } catch (e) {
+    showToast('Failed to remove: ' + e.message, 'error');
+  }
+}
+
+function viewReceipt(url, event) {
+  if (event.target.classList.contains('receipt-delete')) return;
+  document.getElementById('receiptViewerImg').src = url;
+  document.getElementById('receiptViewer').classList.add('active');
+}
+
+function closeReceiptViewer() {
+  document.getElementById('receiptViewer').classList.remove('active');
+  document.getElementById('receiptViewerImg').src = '';
 }
 
 // ─── USER MANAGEMENT (APPROVERS ONLY) ─────────────────
