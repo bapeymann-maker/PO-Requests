@@ -1175,6 +1175,11 @@
     color: var(--yellow);
   }
 
+  .menu-card-icon.icon-tank {
+    background: var(--green-dim);
+    color: var(--green);
+  }
+
   .menu-card-title {
     font-size: 15px;
     font-weight: 700;
@@ -1398,7 +1403,14 @@
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/><path d="M15 10h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 4"/><path d="M3 22h12"/><path d="M7 10h4"/></svg>
           </div>
           <div class="menu-card-title">Fuel Purchase</div>
-          <div class="menu-card-desc">Log a fuel fill-up — no approval needed</div>
+          <div class="menu-card-desc">Log a station fill-up — no approval needed</div>
+        </div>
+        <div class="menu-card" onclick="showSubPage('pageFarmTank')">
+          <div class="menu-card-icon icon-tank">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 6V4"/><path d="M18 6V4"/><line x1="6" y1="12" x2="18" y2="12"/><path d="M10 12v3"/><path d="M14 12v3"/></svg>
+          </div>
+          <div class="menu-card-title">Farm Tank</div>
+          <div class="menu-card-desc">Log from on-farm gasoline tank</div>
         </div>
       </div>
     </div>
@@ -1489,7 +1501,7 @@
 
       <div class="form-section">
         <div class="field">
-          <label>Odometer / Hour Meter (optional)</label>
+          <label>Odometer / Hour Meter</label>
           <input type="text" id="fuelOdometer" placeholder="e.g. 12,450 miles or 3,200 hours">
         </div>
         <div class="field">
@@ -1504,6 +1516,53 @@
 
       <div class="submit-area">
         <button class="btn btn-primary" style="background:var(--yellow);color:var(--bg)" onclick="submitFuel()">Log Fuel Purchase</button>
+      </div>
+    </div>
+
+    <!-- Farm Tank Entry Page -->
+    <div id="pageFarmTank" class="page">
+      <div class="page-header">
+        <button class="back-btn" onclick="showSubPage('pageNew')">← Back</button>
+        <div class="page-title">Farm Tank Log</div>
+        <div class="page-subtitle">On-farm gasoline tank — no approval needed</div>
+      </div>
+
+      <div class="form-section">
+        <div class="field">
+          <label>Vehicle / Tractor / Equipment</label>
+          <input type="text" id="tankVehicle" placeholder="e.g. 2019 John Deere 8R, Truck 12">
+        </div>
+        <div class="field">
+          <label>Date</label>
+          <input type="date" id="tankDate">
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="section-title">Tank Reading</div>
+        <div class="field">
+          <label>Tank Level Before Fueling (%)</label>
+          <input type="number" id="tankLevelBefore" placeholder="e.g. 75" min="0" max="100" step="1">
+        </div>
+        <div class="field">
+          <label>Gallons Dispensed</label>
+          <input type="number" id="tankGallons" placeholder="0.0" step="0.1" min="0">
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="field">
+          <label>Odometer / Hour Meter (optional)</label>
+          <input type="text" id="tankOdometer" placeholder="e.g. 12,450 miles or 3,200 hours">
+        </div>
+        <div class="field">
+          <label>Notes (optional)</label>
+          <textarea id="tankNotes" placeholder="Any additional details..."></textarea>
+        </div>
+      </div>
+
+      <div class="submit-area">
+        <button class="btn btn-primary" style="background:var(--green);color:var(--bg)" onclick="submitFarmTank()">Log Tank Usage</button>
       </div>
     </div>
 
@@ -1558,6 +1617,8 @@
       <div class="filter-bar">
         <button class="filter-btn active" onclick="filterFuel('mine', this)">Mine</button>
         <button class="filter-btn" onclick="filterFuel('all', this)" id="fuelAllFilter" style="display:none">All</button>
+        <button class="filter-btn" onclick="filterFuel('fuel_only', this)">Fuel</button>
+        <button class="filter-btn" onclick="filterFuel('tank_only', this)">Farm Tank</button>
       </div>
       <div id="fuelList"></div>
     </div>
@@ -1754,8 +1815,9 @@ function enterApp() {
   document.getElementById('navUsers').style.display = isApprover ? 'flex' : 'none';
   document.getElementById('fuelAllFilter').style.display = isApprover ? 'inline-block' : 'none';
 
-  // Set default fuel date to today
+  // Set default dates to today
   document.getElementById('fuelDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('tankDate').value = new Date().toISOString().split('T')[0];
 
   addLineItem();
   loadMyPOs();
@@ -1804,7 +1866,7 @@ function showSubPage(pageId) {
   document.getElementById(pageId).classList.add('active');
 
   // Keep the "New" nav item highlighted for sub-pages
-  if (['pageNew', 'pageNewPO', 'pageFuelEntry'].includes(pageId)) {
+  if (['pageNew', 'pageNewPO', 'pageFuelEntry', 'pageFarmTank'].includes(pageId)) {
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     document.querySelector('.bottom-nav .nav-item').classList.add('active');
   }
@@ -1812,6 +1874,9 @@ function showSubPage(pageId) {
   // Reset fuel date when entering fuel form
   if (pageId === 'pageFuelEntry') {
     document.getElementById('fuelDate').value = new Date().toISOString().split('T')[0];
+  }
+  if (pageId === 'pageFarmTank') {
+    document.getElementById('tankDate').value = new Date().toISOString().split('T')[0];
   }
 }
 
@@ -2259,6 +2324,7 @@ async function submitFuel() {
   if (!date) { showToast('Please enter a date', 'error'); return; }
   if (gallons <= 0) { showToast('Please enter gallons', 'error'); return; }
   if (pricePerGal <= 0) { showToast('Please enter price per gallon', 'error'); return; }
+  if (!odometer) { showToast('Please enter odometer / hour meter reading', 'error'); return; }
 
   const totalCost = gallons * pricePerGal;
 
@@ -2274,9 +2340,10 @@ async function submitFuel() {
         gallons: gallons,
         price_per_gallon: pricePerGal,
         total_cost: totalCost,
-        odometer: odometer || null,
+        odometer: odometer,
         station: station || null,
-        notes: notes || null
+        notes: notes || null,
+        entry_type: 'fuel'
       });
 
     if (error) throw error;
@@ -2293,7 +2360,57 @@ async function submitFuel() {
     document.getElementById('fuelTotalCost').textContent = '$0.00';
     document.getElementById('fuelDate').value = new Date().toISOString().split('T')[0];
 
-    // Go back to menu
+    showSubPage('pageNew');
+  } catch (e) {
+    showToast('Failed: ' + e.message, 'error');
+  }
+}
+
+// ─── FARM TANK ENTRY ──────────────────────────────────
+async function submitFarmTank() {
+  const vehicle = document.getElementById('tankVehicle').value.trim();
+  const date = document.getElementById('tankDate').value;
+  const tankLevel = document.getElementById('tankLevelBefore').value;
+  const gallons = parseFloat(document.getElementById('tankGallons').value) || 0;
+  const odometer = document.getElementById('tankOdometer').value.trim();
+  const notes = document.getElementById('tankNotes').value.trim();
+
+  if (!vehicle) { showToast('Please enter vehicle/equipment', 'error'); return; }
+  if (!date) { showToast('Please enter a date', 'error'); return; }
+  if (tankLevel === '' || tankLevel === null) { showToast('Please enter tank level before fueling', 'error'); return; }
+  if (gallons <= 0) { showToast('Please enter gallons dispensed', 'error'); return; }
+
+  try {
+    const { error } = await sb
+      .from('fuel_purchases')
+      .insert({
+        user_id: currentUser.id,
+        user_name: currentProfile.full_name,
+        vehicle: vehicle,
+        purchase_date: date,
+        fuel_type: 'gasoline',
+        gallons: gallons,
+        price_per_gallon: 0,
+        total_cost: 0,
+        odometer: odometer || null,
+        station: 'On-Farm Tank',
+        notes: notes || null,
+        entry_type: 'farm_tank',
+        tank_level_before: parseFloat(tankLevel)
+      });
+
+    if (error) throw error;
+
+    showToast('Farm tank usage logged!', 'success');
+
+    // Reset form
+    document.getElementById('tankVehicle').value = '';
+    document.getElementById('tankLevelBefore').value = '';
+    document.getElementById('tankGallons').value = '';
+    document.getElementById('tankOdometer').value = '';
+    document.getElementById('tankNotes').value = '';
+    document.getElementById('tankDate').value = new Date().toISOString().split('T')[0];
+
     showSubPage('pageNew');
   } catch (e) {
     showToast('Failed: ' + e.message, 'error');
@@ -2314,6 +2431,10 @@ async function loadFuelLog() {
 
   if (fuelFilter === 'mine') {
     query = query.eq('user_id', currentUser.id);
+  } else if (fuelFilter === 'fuel_only') {
+    query = query.eq('entry_type', 'fuel');
+  } else if (fuelFilter === 'tank_only') {
+    query = query.eq('entry_type', 'farm_tank');
   }
 
   const { data, error } = await query;
@@ -2324,7 +2445,7 @@ async function loadFuelLog() {
   }
 
   if (!data || data.length === 0) {
-    container.innerHTML = `<div class="empty-state"><div class="empty-icon">⛽</div><div class="empty-text">No fuel purchases</div><div class="empty-sub">Log your first fill-up from the New tab</div></div>`;
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">⛽</div><div class="empty-text">No fuel entries</div><div class="empty-sub">Log your first fill-up from the New tab</div></div>`;
     return;
   }
 
@@ -2340,7 +2461,30 @@ function filterFuel(filter, btn) {
 
 function fuelCardHTML(f) {
   const date = new Date(f.purchase_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  const showUser = fuelFilter === 'all';
+  const showUser = fuelFilter !== 'mine';
+  const isFarmTank = f.entry_type === 'farm_tank';
+
+  if (isFarmTank) {
+    return `
+      <div class="fuel-card" style="border-left: 3px solid var(--green)">
+        <div class="fuel-card-top">
+          <div>
+            <div class="fuel-vehicle">${escapeHtml(f.vehicle)}</div>
+            ${showUser ? `<div style="font-size:12px;color:var(--text-dim)">by ${escapeHtml(f.user_name)}</div>` : ''}
+          </div>
+          <span class="fuel-badge" style="background:var(--green-dim);color:var(--green)">Farm Tank</span>
+        </div>
+        <div class="fuel-details">
+          <span class="fuel-detail-item">${date}</span>
+          <span class="fuel-detail-item">⛽ ${f.gallons} gal dispensed</span>
+          ${f.tank_level_before != null ? `<span class="fuel-detail-item">🔋 Tank at ${f.tank_level_before}% before</span>` : ''}
+          ${f.odometer ? `<span class="fuel-detail-item">🔢 ${escapeHtml(f.odometer)}</span>` : ''}
+          ${f.notes ? `<span class="fuel-detail-item" style="flex-basis:100%">📝 ${escapeHtml(f.notes)}</span>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
   return `
     <div class="fuel-card">
       <div class="fuel-card-top">
