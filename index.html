@@ -1109,6 +1109,79 @@
     margin-left: 6px;
   }
 
+  /* ── INLINE RECEIPT CAPTURE (forms) ── */
+  .receipt-capture {
+    margin-top: 10px;
+  }
+
+  .receipt-capture-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 6px;
+  }
+
+  .receipt-capture-label .required {
+    color: var(--red);
+  }
+
+  .receipt-capture-btns {
+    display: flex;
+    gap: 8px;
+  }
+
+  .receipt-capture-preview {
+    margin-top: 10px;
+    position: relative;
+    display: none;
+  }
+
+  .receipt-capture-preview.has-image {
+    display: block;
+  }
+
+  .receipt-capture-preview img {
+    width: 100%;
+    max-height: 200px;
+    object-fit: contain;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+
+  .receipt-capture-remove {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    background: rgba(0,0,0,0.7);
+    border: none;
+    border-radius: 50%;
+    color: var(--red);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .receipt-capture-status {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--green);
+    display: none;
+  }
+
+  .receipt-capture-status.visible {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
   .empty-state {
     text-align: center;
     padding: 60px 24px;
@@ -1512,6 +1585,24 @@
           <label>Notes (optional)</label>
           <textarea id="fuelNotes" placeholder="Any additional details..."></textarea>
         </div>
+        <div class="receipt-capture">
+          <span class="receipt-capture-label">Receipt <span class="required">*</span></span>
+          <div class="receipt-capture-btns">
+            <button class="receipt-upload-btn" onclick="triggerFormReceipt('fuel', 'camera')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              Take Photo
+            </button>
+            <button class="receipt-upload-btn" onclick="triggerFormReceipt('fuel', 'file')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Upload File
+            </button>
+          </div>
+          <div class="receipt-capture-preview" id="fuelReceiptPreview">
+            <img id="fuelReceiptImg" src="" alt="Receipt preview">
+            <button class="receipt-capture-remove" onclick="removeFormReceipt('fuel')">×</button>
+          </div>
+          <div class="receipt-capture-status" id="fuelReceiptStatus">✓ Receipt attached</div>
+        </div>
       </div>
 
       <div class="submit-area">
@@ -1541,8 +1632,8 @@
       <div class="form-section">
         <div class="section-title">Tank Reading</div>
         <div class="field">
-          <label>Tank Level Before Fueling (%)</label>
-          <input type="number" id="tankLevelBefore" placeholder="e.g. 75" min="0" max="100" step="1">
+          <label>Tank Total Gallons Reading</label>
+          <input type="number" id="tankLevelBefore" placeholder="e.g. 245.3" min="0" step="0.1">
         </div>
         <div class="field">
           <label>Gallons Dispensed</label>
@@ -1680,6 +1771,8 @@
 <!-- Hidden file inputs -->
 <input type="file" id="receiptFileInput" accept="image/*" style="display:none" onchange="handleReceiptFile(this)">
 <input type="file" id="receiptCameraInput" accept="image/*" capture="environment" style="display:none" onchange="handleReceiptFile(this)">
+<input type="file" id="fuelReceiptFile" accept="image/*" style="display:none" onchange="handleFormReceiptFile('fuel', this)">
+<input type="file" id="fuelReceiptCamera" accept="image/*" capture="environment" style="display:none" onchange="handleFormReceiptFile('fuel', this)">
 
 <script>
 // ─── CONFIG ───────────────────────────────────────────
@@ -2302,6 +2395,68 @@ async function reviewPO(poId, status) {
   }
 }
 
+// ─── FORM RECEIPT CAPTURE (fuel & tank forms) ─────────
+let formReceiptFiles = { fuel: null, tank: null };
+
+function triggerFormReceipt(formType, mode) {
+  const inputId = formType === 'fuel'
+    ? (mode === 'camera' ? 'fuelReceiptCamera' : 'fuelReceiptFile')
+    : (mode === 'camera' ? 'tankReceiptCamera' : 'tankReceiptFile');
+  const input = document.getElementById(inputId);
+  input.value = '';
+  input.click();
+}
+
+function handleFormReceiptFile(formType, input) {
+  const file = input.files?.[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    showToast('Please select an image file', 'error');
+    return;
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    showToast('File too large (max 10MB)', 'error');
+    return;
+  }
+
+  formReceiptFiles[formType] = file;
+
+  // Show preview
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    document.getElementById(formType + 'ReceiptImg').src = e.target.result;
+    document.getElementById(formType + 'ReceiptPreview').classList.add('has-image');
+    document.getElementById(formType + 'ReceiptStatus').classList.add('visible');
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeFormReceipt(formType) {
+  formReceiptFiles[formType] = null;
+  document.getElementById(formType + 'ReceiptImg').src = '';
+  document.getElementById(formType + 'ReceiptPreview').classList.remove('has-image');
+  document.getElementById(formType + 'ReceiptStatus').classList.remove('visible');
+}
+
+async function uploadFormReceipt(formType, fuelId) {
+  const file = formReceiptFiles[formType];
+  if (!file) return null;
+
+  const ext = file.name.split('.').pop() || 'jpg';
+  const fileName = `fuel_${fuelId}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+  const { data: uploadData, error: uploadError } = await sb
+    .storage
+    .from('receipts')
+    .upload(fileName, file, { cacheControl: '3600', upsert: false });
+
+  if (uploadError) throw uploadError;
+
+  const { data: urlData } = sb.storage.from('receipts').getPublicUrl(fileName);
+  return urlData.publicUrl;
+}
+
 // ─── FUEL PURCHASE ────────────────────────────────────
 function updateFuelTotal() {
   const gallons = parseFloat(document.getElementById('fuelGallons').value) || 0;
@@ -2325,11 +2480,13 @@ async function submitFuel() {
   if (gallons <= 0) { showToast('Please enter gallons', 'error'); return; }
   if (pricePerGal <= 0) { showToast('Please enter price per gallon', 'error'); return; }
   if (!odometer) { showToast('Please enter odometer / hour meter reading', 'error'); return; }
+  if (!formReceiptFiles.fuel) { showToast('Please attach a receipt photo', 'error'); return; }
 
   const totalCost = gallons * pricePerGal;
 
   try {
-    const { error } = await sb
+    // Insert the fuel record first
+    const { data: inserted, error } = await sb
       .from('fuel_purchases')
       .insert({
         user_id: currentUser.id,
@@ -2344,9 +2501,17 @@ async function submitFuel() {
         station: station || null,
         notes: notes || null,
         entry_type: 'fuel'
-      });
+      })
+      .select()
+      .single();
 
     if (error) throw error;
+
+    // Upload receipt and save URL
+    const receiptUrl = await uploadFormReceipt('fuel', inserted.id);
+    if (receiptUrl) {
+      await sb.from('fuel_purchases').update({ receipt_url: receiptUrl }).eq('id', inserted.id);
+    }
 
     showToast('Fuel purchase logged!', 'success');
 
@@ -2359,6 +2524,7 @@ async function submitFuel() {
     document.getElementById('fuelNotes').value = '';
     document.getElementById('fuelTotalCost').textContent = '$0.00';
     document.getElementById('fuelDate').value = new Date().toISOString().split('T')[0];
+    removeFormReceipt('fuel');
 
     showSubPage('pageNew');
   } catch (e) {
@@ -2377,11 +2543,11 @@ async function submitFarmTank() {
 
   if (!vehicle) { showToast('Please enter vehicle/equipment', 'error'); return; }
   if (!date) { showToast('Please enter a date', 'error'); return; }
-  if (tankLevel === '' || tankLevel === null) { showToast('Please enter tank level before fueling', 'error'); return; }
+  if (tankLevel === '' || tankLevel === null) { showToast('Please enter tank total gallons reading', 'error'); return; }
   if (gallons <= 0) { showToast('Please enter gallons dispensed', 'error'); return; }
 
   try {
-    const { error } = await sb
+    const { data: inserted, error } = await sb
       .from('fuel_purchases')
       .insert({
         user_id: currentUser.id,
@@ -2397,7 +2563,9 @@ async function submitFarmTank() {
         notes: notes || null,
         entry_type: 'farm_tank',
         tank_level_before: parseFloat(tankLevel)
-      });
+      })
+      .select()
+      .single();
 
     if (error) throw error;
 
@@ -2477,8 +2645,9 @@ function fuelCardHTML(f) {
         <div class="fuel-details">
           <span class="fuel-detail-item">${date}</span>
           <span class="fuel-detail-item">⛽ ${f.gallons} gal dispensed</span>
-          ${f.tank_level_before != null ? `<span class="fuel-detail-item">🔋 Tank at ${f.tank_level_before}% before</span>` : ''}
+          ${f.tank_level_before != null ? `<span class="fuel-detail-item">🔋 Tank reading: ${f.tank_level_before} gal</span>` : ''}
           ${f.odometer ? `<span class="fuel-detail-item">🔢 ${escapeHtml(f.odometer)}</span>` : ''}
+          ${f.receipt_url ? `<span class="fuel-detail-item" style="cursor:pointer;color:var(--accent)" onclick="viewReceipt('${f.receipt_url}', event)">📎 View Receipt</span>` : ''}
           ${f.notes ? `<span class="fuel-detail-item" style="flex-basis:100%">📝 ${escapeHtml(f.notes)}</span>` : ''}
         </div>
       </div>
@@ -2500,6 +2669,7 @@ function fuelCardHTML(f) {
         <span class="fuel-detail-item">${f.gallons} gal @ $${f.price_per_gallon.toFixed(2)}</span>
         ${f.odometer ? `<span class="fuel-detail-item">🔢 ${escapeHtml(f.odometer)}</span>` : ''}
         ${f.station ? `<span class="fuel-detail-item">📍 ${escapeHtml(f.station)}</span>` : ''}
+        ${f.receipt_url ? `<span class="fuel-detail-item" style="cursor:pointer;color:var(--accent)" onclick="viewReceipt('${f.receipt_url}', event)">📎 View Receipt</span>` : ''}
         ${f.notes ? `<span class="fuel-detail-item" style="flex-basis:100%">📝 ${escapeHtml(f.notes)}</span>` : ''}
       </div>
     </div>
