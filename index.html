@@ -1130,6 +1130,132 @@
 
   .empty-sub { font-size: 13px; }
 
+  /* ── MENU CARDS ── */
+  .menu-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 0 16px;
+  }
+
+  .menu-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .menu-card:active {
+    background: var(--surface-2);
+    transform: scale(0.98);
+  }
+
+  .menu-card-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 12px;
+    font-size: 24px;
+  }
+
+  .menu-card-icon.icon-po {
+    background: var(--accent-dim);
+    color: var(--accent);
+  }
+
+  .menu-card-icon.icon-fuel {
+    background: var(--yellow-dim);
+    color: var(--yellow);
+  }
+
+  .menu-card-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .menu-card-desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.4;
+  }
+
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 4px 0;
+    margin-bottom: 4px;
+    background: none;
+    border: none;
+    font-family: var(--font);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ── FUEL LOG ── */
+  .fuel-card {
+    margin: 0 16px 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+  }
+
+  .fuel-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 6px;
+  }
+
+  .fuel-vehicle {
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .fuel-cost {
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--yellow);
+  }
+
+  .fuel-details {
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text-dim);
+    flex-wrap: wrap;
+  }
+
+  .fuel-detail-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .fuel-badge {
+    font-size: 10px;
+    padding: 2px 7px;
+    background: var(--yellow-dim);
+    color: var(--yellow);
+    border-radius: 20px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
   .toast {
     position: fixed;
     top: 20px;
@@ -1253,9 +1379,35 @@
 
   <div class="content">
     <!-- New PO Page -->
+    <!-- Menu Page -->
     <div id="pageNew" class="page active">
       <div class="page-header">
-        <div class="page-title">New Request</div>
+        <div class="page-title">New Entry</div>
+        <div class="page-subtitle">What would you like to do?</div>
+      </div>
+      <div class="menu-grid">
+        <div class="menu-card" onclick="showSubPage('pageNewPO')">
+          <div class="menu-card-icon icon-po">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+          </div>
+          <div class="menu-card-title">PO Request</div>
+          <div class="menu-card-desc">Submit a purchase order for approval</div>
+        </div>
+        <div class="menu-card" onclick="showSubPage('pageFuelEntry')">
+          <div class="menu-card-icon icon-fuel">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/><path d="M15 10h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 4"/><path d="M3 22h12"/><path d="M7 10h4"/></svg>
+          </div>
+          <div class="menu-card-title">Fuel Purchase</div>
+          <div class="menu-card-desc">Log a fuel fill-up — no approval needed</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- New PO Form Page -->
+    <div id="pageNewPO" class="page">
+      <div class="page-header">
+        <button class="back-btn" onclick="showSubPage('pageNew')">← Back</button>
+        <div class="page-title">New PO Request</div>
         <div class="page-subtitle">Submit a purchase order for approval</div>
       </div>
 
@@ -1290,6 +1442,68 @@
 
       <div class="submit-area">
         <button class="btn btn-primary" onclick="submitPO()">Submit Request</button>
+      </div>
+    </div>
+
+    <!-- Fuel Entry Form Page -->
+    <div id="pageFuelEntry" class="page">
+      <div class="page-header">
+        <button class="back-btn" onclick="showSubPage('pageNew')">← Back</button>
+        <div class="page-title">Log Fuel Purchase</div>
+        <div class="page-subtitle">No approval required</div>
+      </div>
+
+      <div class="form-section">
+        <div class="field">
+          <label>Vehicle / Tractor / Equipment</label>
+          <input type="text" id="fuelVehicle" placeholder="e.g. 2019 John Deere 8R, Truck 12">
+        </div>
+        <div class="field">
+          <label>Date</label>
+          <input type="date" id="fuelDate">
+        </div>
+        <div class="field">
+          <label>Fuel Type</label>
+          <select id="fuelType">
+            <option value="diesel">Diesel</option>
+            <option value="gasoline">Gasoline</option>
+            <option value="def">DEF</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="cost-row">
+          <div class="field">
+            <label>Gallons</label>
+            <input type="number" id="fuelGallons" placeholder="0.0" step="0.1" min="0" oninput="updateFuelTotal()">
+          </div>
+          <div class="field">
+            <label>Price per Gallon ($)</label>
+            <input type="number" id="fuelPricePerGal" placeholder="0.00" step="0.01" min="0" oninput="updateFuelTotal()">
+          </div>
+        </div>
+        <div class="total-bar" style="margin:0">
+          <span class="total-label">Total Cost</span>
+          <span id="fuelTotalCost" class="total-amount" style="color:var(--yellow)">$0.00</span>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="field">
+          <label>Odometer / Hour Meter (optional)</label>
+          <input type="text" id="fuelOdometer" placeholder="e.g. 12,450 miles or 3,200 hours">
+        </div>
+        <div class="field">
+          <label>Station / Location (optional)</label>
+          <input type="text" id="fuelStation" placeholder="e.g. Casey's, On-farm tank">
+        </div>
+        <div class="field">
+          <label>Notes (optional)</label>
+          <textarea id="fuelNotes" placeholder="Any additional details..."></textarea>
+        </div>
+      </div>
+
+      <div class="submit-area">
+        <button class="btn btn-primary" style="background:var(--yellow);color:var(--bg)" onclick="submitFuel()">Log Fuel Purchase</button>
       </div>
     </div>
 
@@ -1334,17 +1548,34 @@
       </div>
       <div id="userList"></div>
     </div>
+
+    <!-- Fuel Log Page -->
+    <div id="pageFuelLog" class="page">
+      <div class="page-header">
+        <div class="page-title">Fuel Log</div>
+        <div class="page-subtitle">All fuel purchases</div>
+      </div>
+      <div class="filter-bar">
+        <button class="filter-btn active" onclick="filterFuel('mine', this)">Mine</button>
+        <button class="filter-btn" onclick="filterFuel('all', this)" id="fuelAllFilter" style="display:none">All</button>
+      </div>
+      <div id="fuelList"></div>
+    </div>
   </div>
 
   <!-- Bottom Nav -->
   <nav class="bottom-nav">
     <a class="nav-item active" onclick="showPage('pageNew', this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       <span>New</span>
     </a>
     <a class="nav-item" onclick="showPage('pageMyPOs', this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-      <span>My POs</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span>POs</span>
+    </a>
+    <a class="nav-item" onclick="showPage('pageFuelLog', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/><path d="M15 10h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 4"/><path d="M3 22h12"/><path d="M7 10h4"/></svg>
+      <span>Fuel</span>
     </a>
     <a id="navApprovals" class="nav-item" onclick="showPage('pageApprovals', this)" style="display:none">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
@@ -1392,8 +1623,8 @@
 <script>
 // ─── CONFIG ───────────────────────────────────────────
 // Replace these with your Supabase project values
-const SUPABASE_URL = 'https://ndzlvuvceraprpjhseax.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kemx2dXZjZXJhcHJwamhzZWF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzMTMwMzQsImV4cCI6MjA4NTg4OTAzNH0.fQk-lXcBFxSRY1wTFwr1v7katWT-dscvcWMLXv7lteI';
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 
 let sb, currentUser, currentProfile, isSignUp = false;
 
@@ -1521,6 +1752,10 @@ function enterApp() {
   document.getElementById('userRole').textContent = isApprover ? 'Approver' : 'Employee';
   document.getElementById('navApprovals').style.display = isApprover ? 'flex' : 'none';
   document.getElementById('navUsers').style.display = isApprover ? 'flex' : 'none';
+  document.getElementById('fuelAllFilter').style.display = isApprover ? 'inline-block' : 'none';
+
+  // Set default fuel date to today
+  document.getElementById('fuelDate').value = new Date().toISOString().split('T')[0];
 
   addLineItem();
   loadMyPOs();
@@ -1560,6 +1795,24 @@ function showPage(pageId, navEl) {
   if (pageId === 'pageMyPOs') loadMyPOs();
   if (pageId === 'pageApprovals') loadApprovals();
   if (pageId === 'pageUsers') loadUsers();
+  if (pageId === 'pageFuelLog') loadFuelLog();
+}
+
+// Sub-pages within the "New" tab (PO form, Fuel form, back to menu)
+function showSubPage(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+
+  // Keep the "New" nav item highlighted for sub-pages
+  if (['pageNew', 'pageNewPO', 'pageFuelEntry'].includes(pageId)) {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelector('.bottom-nav .nav-item').classList.add('active');
+  }
+
+  // Reset fuel date when entering fuel form
+  if (pageId === 'pageFuelEntry') {
+    document.getElementById('fuelDate').value = new Date().toISOString().split('T')[0];
+  }
 }
 
 // ─── LINE ITEMS ───────────────────────────────────────
@@ -1982,6 +2235,131 @@ async function reviewPO(poId, status) {
   } catch (e) {
     showToast('Failed: ' + e.message, 'error');
   }
+}
+
+// ─── FUEL PURCHASE ────────────────────────────────────
+function updateFuelTotal() {
+  const gallons = parseFloat(document.getElementById('fuelGallons').value) || 0;
+  const ppg = parseFloat(document.getElementById('fuelPricePerGal').value) || 0;
+  const total = gallons * ppg;
+  document.getElementById('fuelTotalCost').textContent = '$' + total.toFixed(2);
+}
+
+async function submitFuel() {
+  const vehicle = document.getElementById('fuelVehicle').value.trim();
+  const date = document.getElementById('fuelDate').value;
+  const fuelType = document.getElementById('fuelType').value;
+  const gallons = parseFloat(document.getElementById('fuelGallons').value) || 0;
+  const pricePerGal = parseFloat(document.getElementById('fuelPricePerGal').value) || 0;
+  const odometer = document.getElementById('fuelOdometer').value.trim();
+  const station = document.getElementById('fuelStation').value.trim();
+  const notes = document.getElementById('fuelNotes').value.trim();
+
+  if (!vehicle) { showToast('Please enter vehicle/equipment', 'error'); return; }
+  if (!date) { showToast('Please enter a date', 'error'); return; }
+  if (gallons <= 0) { showToast('Please enter gallons', 'error'); return; }
+  if (pricePerGal <= 0) { showToast('Please enter price per gallon', 'error'); return; }
+
+  const totalCost = gallons * pricePerGal;
+
+  try {
+    const { error } = await sb
+      .from('fuel_purchases')
+      .insert({
+        user_id: currentUser.id,
+        user_name: currentProfile.full_name,
+        vehicle: vehicle,
+        purchase_date: date,
+        fuel_type: fuelType,
+        gallons: gallons,
+        price_per_gallon: pricePerGal,
+        total_cost: totalCost,
+        odometer: odometer || null,
+        station: station || null,
+        notes: notes || null
+      });
+
+    if (error) throw error;
+
+    showToast('Fuel purchase logged!', 'success');
+
+    // Reset form
+    document.getElementById('fuelVehicle').value = '';
+    document.getElementById('fuelGallons').value = '';
+    document.getElementById('fuelPricePerGal').value = '';
+    document.getElementById('fuelOdometer').value = '';
+    document.getElementById('fuelStation').value = '';
+    document.getElementById('fuelNotes').value = '';
+    document.getElementById('fuelTotalCost').textContent = '$0.00';
+    document.getElementById('fuelDate').value = new Date().toISOString().split('T')[0];
+
+    // Go back to menu
+    showSubPage('pageNew');
+  } catch (e) {
+    showToast('Failed: ' + e.message, 'error');
+  }
+}
+
+// ─── FUEL LOG ─────────────────────────────────────────
+let fuelFilter = 'mine';
+
+async function loadFuelLog() {
+  const container = document.getElementById('fuelList');
+  container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+  let query = sb
+    .from('fuel_purchases')
+    .select('*')
+    .order('purchase_date', { ascending: false });
+
+  if (fuelFilter === 'mine') {
+    query = query.eq('user_id', currentUser.id);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-text">Error</div><div class="empty-sub">${error.message}</div></div>`;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">⛽</div><div class="empty-text">No fuel purchases</div><div class="empty-sub">Log your first fill-up from the New tab</div></div>`;
+    return;
+  }
+
+  container.innerHTML = data.map(f => fuelCardHTML(f)).join('');
+}
+
+function filterFuel(filter, btn) {
+  fuelFilter = filter;
+  document.querySelectorAll('#pageFuelLog .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadFuelLog();
+}
+
+function fuelCardHTML(f) {
+  const date = new Date(f.purchase_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const showUser = fuelFilter === 'all';
+  return `
+    <div class="fuel-card">
+      <div class="fuel-card-top">
+        <div>
+          <div class="fuel-vehicle">${escapeHtml(f.vehicle)}</div>
+          ${showUser ? `<div style="font-size:12px;color:var(--text-dim)">by ${escapeHtml(f.user_name)}</div>` : ''}
+        </div>
+        <div class="fuel-cost">$${f.total_cost.toFixed(2)}</div>
+      </div>
+      <div class="fuel-details">
+        <span class="fuel-detail-item">${date}</span>
+        <span class="fuel-badge">${escapeHtml(f.fuel_type)}</span>
+        <span class="fuel-detail-item">${f.gallons} gal @ $${f.price_per_gallon.toFixed(2)}</span>
+        ${f.odometer ? `<span class="fuel-detail-item">🔢 ${escapeHtml(f.odometer)}</span>` : ''}
+        ${f.station ? `<span class="fuel-detail-item">📍 ${escapeHtml(f.station)}</span>` : ''}
+        ${f.notes ? `<span class="fuel-detail-item" style="flex-basis:100%">📝 ${escapeHtml(f.notes)}</span>` : ''}
+      </div>
+    </div>
+  `;
 }
 
 // ─── RECEIPT UPLOAD ────────────────────────────────────
