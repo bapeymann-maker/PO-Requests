@@ -2631,10 +2631,11 @@ function fuelCardHTML(f) {
   const date = new Date(f.purchase_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const showUser = fuelFilter !== 'mine';
   const isFarmTank = f.entry_type === 'farm_tank';
+  const fuelJSON = JSON.stringify(f).replace(/'/g, "&#39;");
 
   if (isFarmTank) {
     return `
-      <div class="fuel-card" style="border-left: 3px solid var(--green)">
+      <div class="fuel-card" style="border-left: 3px solid var(--green);cursor:pointer" onclick='openFuelDetail(${fuelJSON})'>
         <div class="fuel-card-top">
           <div>
             <div class="fuel-vehicle">${escapeHtml(f.vehicle)}</div>
@@ -2647,7 +2648,6 @@ function fuelCardHTML(f) {
           <span class="fuel-detail-item">⛽ ${f.gallons} gal dispensed</span>
           ${f.tank_level_before != null ? `<span class="fuel-detail-item">🔋 Tank reading: ${f.tank_level_before} gal</span>` : ''}
           ${f.odometer ? `<span class="fuel-detail-item">🔢 ${escapeHtml(f.odometer)}</span>` : ''}
-          ${f.receipt_url ? `<span class="fuel-detail-item" style="cursor:pointer;color:var(--accent)" onclick="viewReceipt('${f.receipt_url}', event)">📎 View Receipt</span>` : ''}
           ${f.notes ? `<span class="fuel-detail-item" style="flex-basis:100%">📝 ${escapeHtml(f.notes)}</span>` : ''}
         </div>
       </div>
@@ -2655,7 +2655,7 @@ function fuelCardHTML(f) {
   }
 
   return `
-    <div class="fuel-card">
+    <div class="fuel-card" style="cursor:pointer" onclick='openFuelDetail(${fuelJSON})'>
       <div class="fuel-card-top">
         <div>
           <div class="fuel-vehicle">${escapeHtml(f.vehicle)}</div>
@@ -2669,11 +2669,78 @@ function fuelCardHTML(f) {
         <span class="fuel-detail-item">${f.gallons} gal @ $${f.price_per_gallon.toFixed(2)}</span>
         ${f.odometer ? `<span class="fuel-detail-item">🔢 ${escapeHtml(f.odometer)}</span>` : ''}
         ${f.station ? `<span class="fuel-detail-item">📍 ${escapeHtml(f.station)}</span>` : ''}
-        ${f.receipt_url ? `<span class="fuel-detail-item" style="cursor:pointer;color:var(--accent)" onclick="viewReceipt('${f.receipt_url}', event)">📎 View Receipt</span>` : ''}
+        ${f.receipt_url ? `<span class="fuel-detail-item" style="color:var(--accent)">📎 Receipt</span>` : ''}
         ${f.notes ? `<span class="fuel-detail-item" style="flex-basis:100%">📝 ${escapeHtml(f.notes)}</span>` : ''}
       </div>
     </div>
   `;
+}
+
+function openFuelDetail(f) {
+  const date = new Date(f.purchase_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  const isFarmTank = f.entry_type === 'farm_tank';
+  const badgeStyle = isFarmTank ? 'background:var(--green-dim);color:var(--green)' : 'background:var(--yellow-dim);color:var(--yellow)';
+  const badgeText = isFarmTank ? 'Farm Tank' : escapeHtml(f.fuel_type);
+
+  let html = `
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="modal-title">${escapeHtml(f.vehicle)}</div>
+      <span class="fuel-badge" style="${badgeStyle}">${badgeText}</span>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-row"><span class="detail-label">Date</span><span class="detail-value">${date}</span></div>
+      <div class="detail-row"><span class="detail-label">Logged By</span><span class="detail-value">${escapeHtml(f.user_name)}</span></div>
+      <div class="detail-row"><span class="detail-label">Gallons</span><span class="detail-value" style="font-family:var(--mono)">${f.gallons}</span></div>
+  `;
+
+  if (!isFarmTank) {
+    html += `
+      <div class="detail-row"><span class="detail-label">Price/Gal</span><span class="detail-value" style="font-family:var(--mono)">$${f.price_per_gallon.toFixed(2)}</span></div>
+      <div class="detail-row"><span class="detail-label">Total Cost</span><span class="detail-value" style="color:var(--yellow);font-family:var(--mono)">$${f.total_cost.toFixed(2)}</span></div>
+    `;
+  }
+
+  if (isFarmTank && f.tank_level_before != null) {
+    html += `<div class="detail-row"><span class="detail-label">Tank Reading</span><span class="detail-value" style="font-family:var(--mono)">${f.tank_level_before} gal</span></div>`;
+  }
+
+  if (f.odometer) {
+    html += `<div class="detail-row"><span class="detail-label">Odometer</span><span class="detail-value">${escapeHtml(f.odometer)}</span></div>`;
+  }
+
+  if (f.station && !isFarmTank) {
+    html += `<div class="detail-row"><span class="detail-label">Station</span><span class="detail-value">${escapeHtml(f.station)}</span></div>`;
+  }
+
+  if (f.notes) {
+    html += `<div class="detail-row"><span class="detail-label">Notes</span><span class="detail-value" style="max-width:60%;text-align:right">${escapeHtml(f.notes)}</span></div>`;
+  }
+
+  html += `</div>`;
+
+  // Receipt section
+  if (f.receipt_url) {
+    html += `
+      <div class="detail-section">
+        <div class="section-title" style="border:none;padding:0;margin-bottom:10px">Receipt</div>
+        <div style="cursor:pointer" onclick="viewReceipt('${f.receipt_url}', event)">
+          <img src="${f.receipt_url}" alt="Receipt" style="width:100%;max-height:400px;object-fit:contain;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface-2)" loading="lazy">
+        </div>
+        <div style="text-align:center;margin-top:8px;font-size:12px;color:var(--text-dim)">Tap image to view full size</div>
+      </div>
+    `;
+  } else if (!isFarmTank) {
+    html += `
+      <div class="detail-section">
+        <div class="section-title" style="border:none;padding:0;margin-bottom:10px">Receipt</div>
+        <div class="empty-state" style="padding:20px"><div class="empty-text" style="font-size:13px">No receipt attached</div></div>
+      </div>
+    `;
+  }
+
+  document.getElementById('modalContent').innerHTML = html;
+  document.getElementById('detailModal').classList.add('active');
 }
 
 // ─── RECEIPT UPLOAD ────────────────────────────────────
