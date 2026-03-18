@@ -243,6 +243,20 @@
     cursor: pointer; font-size: 18px; padding: 4px 8px;
   }
 
+  .notif-btn {
+    background: none; border: none; color: var(--text-muted);
+    cursor: pointer; font-size: 18px; padding: 4px 8px;
+    position: relative;
+  }
+  .notif-btn.enabled { color: var(--accent); }
+  .notif-dot {
+    position: absolute; top: 0; right: 2px;
+    width: 8px; height: 8px;
+    background: var(--red); border-radius: 50%;
+    display: none;
+  }
+  .notif-dot.active { display: block; }
+
   /* Content area */
   .content {
     flex: 1;
@@ -1451,6 +1465,9 @@
     </div>
     <div class="topbar-user">
       <span id="userRole" class="role-badge"></span>
+      <button class="notif-btn" id="notifBtn" onclick="toggleNotifications()" title="Notifications">
+        🔔<span class="notif-dot" id="notifDot"></span>
+      </button>
       <button class="logout-btn" onclick="logout()" title="Sign out">⏻</button>
     </div>
   </div>
@@ -1918,9 +1935,19 @@ function enterApp() {
     loadApprovals();
     loadUsers();
   }
+
+  // Auto-start notifications if previously allowed
+  if ('Notification' in window && Notification.permission === 'granted') {
+    notifEnabled = true;
+    updateNotifButton();
+    startNotifPolling();
+  }
 }
 
 async function logout() {
+  stopNotifPolling();
+  notifEnabled = false;
+  updateNotifButton();
   await sb.auth.signOut();
   document.getElementById('app').classList.remove('active');
   document.getElementById('pendingScreen').classList.remove('active');
@@ -3254,6 +3281,158 @@ function escapeHtml(text) {
   const d = document.createElement('div');
   d.textContent = text || '';
   return d.innerHTML;
+}
+
+// ─── BROWSER NOTIFICATIONS ────────────────────────────
+let notifEnabled = false;
+let notifInterval = null;
+let lastCheckTime = null;
+
+async function toggleNotifications() {
+  if (!('Notification' in window)) {
+    showToast('Notifications not supported on this browser', 'error');
+    return;
+  }
+
+  if (Notification.permission === 'granted') {
+    notifEnabled = !notifEnabled;
+    updateNotifButton();
+    if (notifEnabled) {
+      startNotifPolling();
+      showToast('Notifications enabled', 'success');
+    } else {
+      stopNotifPolling();
+      showToast('Notifications paused', 'success');
+    }
+    return;
+  }
+
+  if (Notification.permission === 'denied') {
+    showToast('Notifications blocked — enable in your browser settings', 'error');
+    return;
+  }
+
+  // Ask permission
+  const permission = await Notification.requestPermission();
+  if (permission === 'granted') {
+    notifEnabled = true;
+    updateNotifButton();
+    startNotifPolling();
+    showToast('Notifications enabled', 'success');
+  } else {
+    showToast('Notifications were not allowed', 'error');
+  }
+}
+
+function updateNotifButton() {
+  const btn = document.getElementById('notifBtn');
+  if (notifEnabled) {
+    btn.classList.add('enabled');
+  } else {
+    btn.classList.remove('enabled');
+  }
+}
+
+function startNotifPolling() {
+  lastCheckTime = new Date().toISOString();
+  stopNotifPolling();
+  notifInterval = setInterval(checkForNotifications, 30000); // every 30 seconds
+}
+
+function stopNotifPolling() {
+  if (notifInterval) {
+    clearInterval(notifInterval);
+    notifInterval = null;
+  }
+}
+
+async function checkForNotifications() {
+  if (!notifEnabled || !currentUser || !currentProfile || !sb) return;
+
+  try {
+    const isApprover = currentProfile.role === 'approver';
+
+    if (isApprover) {
+      // Check for new PO requests since last check
+      const { data } = await sb
+        .from('purchase_orders')
+        .select('id, requester_name, vendor_name, estimated_total')
+        .eq('status', 'requested')
+        .gt('created_at', lastCheckTime)
+        .order('created_at', { ascending: false });
+
+      if (data && data.length > 0) {
+        if (data.length === 1) {
+          sendNotification(
+            'New PO Request',
+            `${data[0].requester_name} — ${data[0].vendor_name} ($${data[0].estimated_total.toFixed(2)})`,
+            'po'
+          );
+        } else {
+          sendNotification(
+            `${data.length} New PO Requests`,
+            'Tap to review pending purchase orders',
+            'po'
+          );
+        }
+        // Refresh approvals badge
+        loadApprovals();
+      }
+    }
+
+    // For all users — check if any of their POs were reviewed
+    const { data: reviewed } = await sb
+      .from('purchase_orders')
+      .select('id, vendor_name, status, po_number')
+      .eq('requester_id', currentUser.id)
+      .gt('reviewed_at', lastCheckTime)
+      .order('reviewed_at', { ascending: false });
+
+    if (reviewed && reviewed.length > 0) {
+      reviewed.forEach(po => {
+        const statusText = po.status === 'approved' ? '✅ Approved' : '❌ Rejected';
+        const poLabel = po.po_number || po.vendor_name;
+        sendNotification(
+          `PO ${statusText}`,
+          poLabel,
+          'review'
+        );
+      });
+      // Refresh my POs
+      loadMyPOs();
+    }
+
+    lastCheckTime = new Date().toISOString();
+  } catch (e) {
+    console.error('Notification check failed:', e);
+  }
+}
+
+function sendNotification(title, body, tag) {
+  if (Notification.permission !== 'granted') return;
+
+  // Show dot indicator
+  document.getElementById('notifDot').classList.add('active');
+  setTimeout(() => {
+    document.getElementById('notifDot').classList.remove('active');
+  }, 5000);
+
+  try {
+    const notif = new Notification(title, {
+      body: body,
+      icon: '📋',
+      tag: tag + '_' + Date.now(), // unique so multiple show
+      requireInteraction: false
+    });
+
+    notif.onclick = function() {
+      window.focus();
+      notif.close();
+    };
+  } catch (e) {
+    // Fallback for mobile where Notification constructor may not work
+    console.log('Notification:', title, body);
+  }
 }
 
 // Init
